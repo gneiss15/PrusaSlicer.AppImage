@@ -2,7 +2,9 @@
 
 ### Download
 
-https://github.com/probonopd/PrusaSlicer.AppImage/releases/latest
+Latest: https://github.com/gneiss15/PrusaSlicer.AppImage/releases/latest
+
+All Releases: https://github.com/gneiss15/PrusaSlicer.AppImage/releases
 
 ### Background
 

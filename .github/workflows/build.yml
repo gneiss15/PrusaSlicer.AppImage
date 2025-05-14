@@ -23,15 +23,64 @@ jobs:
     timeout-minutes: 180
     steps:
 
+    - name: Get latest release tag from prusa3d/PrusaSlicer
+      id: get_release
+      run: |
+        # Fetch the latest release details from prusa3d/PrusaSlicer
+        release=$(curl -s https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest)
+        release_tag=$(echo $release | jq -r '.tag_name')
+        echo "Latest release tag: $release_tag"
+        echo "release_tag=$release_tag" >> $GITHUB_ENV
+    
+    - name: Download previous release tag
+      uses: actions/download-artifact@v4
+      with:
+        name: release-tag
+        path: ./release-tag
+      continue-on-error: true
+
+    - name: Set previous release tag
+      id: set_previous_tag
+      run: |
+        if [ -f ./release-tag/release.txt ]; then
+          PREVIOUS_RELEASE=$(cat ./release-tag/release.txt)
+          echo "Previous release tag: $PREVIOUS_RELEASE"
+        else
+          echo "No previous release tag found, assuming this is the first run."
+          PREVIOUS_RELEASE=""
+        fi
+        echo "PREVIOUS_RELEASE=$PREVIOUS_RELEASE" >> $GITHUB_ENV
+
+    - name: Check if new release tag is found
+      run: |
+        if [ "$release_tag" != "$PREVIOUS_RELEASE" ]; then
+          echo "New release found: $release_tag"
+          echo "NEW_RELEASE=true" >> $GITHUB_ENV
+        else
+          echo "No new release."
+          echo "NEW_RELEASE=false" >> $GITHUB_ENV
+        fi
+  
+    - name: Exit if no new release
+      run: |
+        if [ "$NEW_RELEASE" == "false" ]; then
+          echo "No new release found. Exiting."
+          exit 0  # Exit the job gracefully if no new release
+        fi  
+    
     - name: Clone the repository
       uses: actions/checkout@v4
-      
+
     - name: Prerequisities
       run: |
         sudo apt-get update
         # locales-all is needed, otherwise it will crash with LANG=ro_RO.UTF-8
-        sudo apt-get install -y locales-all git build-essential autoconf cmake libglu1-mesa-dev libgtk-3-dev libdbus-1-dev libwebkit2gtk-4.1-dev desktop-file-utils libegl-mesa0 libnss-mdns
-        sudo apt-get install -y libglx-mesa0 libglx0 libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-present0 libxcb-sync1 libxcb-xfixes0 libxshmfence1 libgl1 libdrm2 libgbm1 libvulkan1
+        sudo apt-get install -y locales-all git build-essential autoconf cmake \
+           libglu1-mesa-dev libgtk-3-dev libdbus-1-dev libwebkit2gtk-4.1-dev \
+           desktop-file-utils libegl-mesa0 libnss-mdns libglx-mesa0 libglx0 \
+           libxcb-dri2-0 libxcb-dri3-0 libxcb-glx0 libxcb-present0 libxcb-sync1 \
+           libxcb-xfixes0 libxshmfence1 libgl1 libdrm2 libgbm1 libvulkan1 \
+           zlib1g-dev libbz2-dev libboost-all-dev
 
     - name: Clone PrusaSlicer repository
       run: |
@@ -45,6 +94,7 @@ jobs:
         git checkout $TAG
         CLEAN_TAG=$(echo $TAG|sed -e 's|version_||g')
         echo "VERSION=$CLEAN_TAG" >> $GITHUB_ENV
+        sed -i "s/UNKNOWN/gneiss15/g" version.inc
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
@@ -77,6 +127,7 @@ jobs:
     - name: Download GMP
       if: steps.cache-dependencies.outputs.cache-hit != 'true'
       run: |
+        rm -rf PrusaSlicer/deps/build/destdir/*
         mkdir -p PrusaSlicer/deps/download/GMP
         test -r PrusaSlicer/deps/download/GMP/gmp-6.2.1.tar.bz2 || curl -o PrusaSlicer/deps/download/GMP/gmp-6.2.1.tar.bz2 https://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.bz2
 
@@ -87,7 +138,7 @@ jobs:
         cd PrusaSlicer/deps
         mkdir -p build
         cd build
-        cmake .. -DDEP_WX_GTK3=ON -DDEP_DOWNLOAD_DIR=$(pwd)/../download
+        cmake .. -DDEP_WX_GTK3=ON -DDEP_DOWNLOAD_DIR=$(pwd)/../download -DBOOST_ROOT=$(pwd)/../build/destdir/usr/local
         make -j $(nproc)
 
     - name: Build PrusaSlicer
