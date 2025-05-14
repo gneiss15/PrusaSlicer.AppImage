@@ -97,7 +97,8 @@ jobs:
         # Change Version-Info from ...UNKNOW to ...gneiss15
         sed -i "s/UNKNOWN/gneiss15/g" version.inc
         # Needed till Eigen Checksum fixed
-        sed -i "s/e09b89aae054e9778ee3f606192ee76d645eec82c402c01c648b1fe46b6b9857/4815118c085ff1d5a21f62218a3b2ac62555e9b8d7bacd5093892398e7a92c4b/g" deps/+Eigen/Eigen.cmake
+        sed -i "s/URL_HASH.*//g" deps/+Eigen/Eigen.cmake
+        #sed -i "s/e09b89aae054e9778ee3f606192ee76d645eec82c402c01c648b1fe46b6b9857/4815118c085ff1d5a21f62218a3b2ac62555e9b8d7bacd5093892398e7a92c4b/g" deps/+Eigen/Eigen.cmake
 
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
