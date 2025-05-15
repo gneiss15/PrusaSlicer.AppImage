@@ -1,6 +1,7 @@
 name: TestArtifact
 
 on:
+  on: workflow_dispatch
   schedule:
     - cron: '0 0 1 * *' # Every 1. of Moth at 00:00 CET
 
