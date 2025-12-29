@@ -93,7 +93,7 @@ jobs:
 
     - name: Send success mail
       if: success()
-      uses: dawidd6/action-send-mail@v6
+      uses: dawidd6/action-send-mail@v7
       with:
         server_address: smtp.web.de
         server_port: 587
